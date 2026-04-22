@@ -1,0 +1,86 @@
+{% extends 'admin/base.html' %}
+{% block title %}Nueva propuesta{% endblock %}
+{% block page_title %}Nueva propuesta{% endblock %}
+
+{% block content %}
+
+<div style="max-width:600px;">
+  <div class="card">
+    <div class="card-title">Subir propuesta HTML</div>
+
+    <form method="POST" enctype="multipart/form-data">
+
+      <div class="form-group">
+        <label>Título interno</label>
+        <input type="text" name="titulo" placeholder="Propuesta comercial · Nubicom · Abril 2026" required>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+          Solo para tu referencia en el panel. El cliente no lo ve.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Cliente</label>
+        <select name="cliente_id" required>
+          <option value="">Seleccioná un cliente</option>
+          {% for c in clientes %}
+          <option value="{{ c.id }}">{{ c.nombre }} · {{ c.empresa.nombre }}</option>
+          {% endfor %}
+        </select>
+        {% if not clientes %}
+        <div style="font-size:11px; color:#fc8181; margin-top:4px;">
+          No hay clientes. <a href="{{ url_for('admin_clientes') }}" style="color:#fc8181;">Creá uno primero →</a>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label>Archivo HTML</label>
+        <input type="file" name="html_file" accept=".html" required>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+          Solo archivos .html · Máximo 16MB
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-row" style="margin-bottom:10px;">
+          <input type="checkbox" name="expira" id="expira_check" onchange="toggleExpiry(this)">
+          <label for="expira_check" style="text-transform:none; letter-spacing:0; font-family:var(--sans); font-size:13px; margin:0; cursor:pointer;">
+            Activar expiración automática
+          </label>
+        </div>
+        <div id="expiry_config" style="display:none; padding:12px; background:var(--surface2); border-radius:4px; border:1px solid var(--border2);">
+          <label>Días hasta expiración</label>
+          <input type="number" name="dias_expiracion" value="30" min="1" max="365" style="width:120px;">
+          <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+            El cliente verá una pantalla de "propuesta vencida" al intentar acceder.
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px; margin-top:8px;">
+        <button type="submit" class="btn btn-primary">
+          Subir propuesta →
+        </button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost">Cancelar</a>
+      </div>
+
+    </form>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">Cómo funciona</div>
+    <div style="font-size:13px; color:var(--muted); line-height:1.8;">
+      <p>1. Subís el archivo HTML que generaste para el cliente.</p>
+      <p>2. El sistema inyecta el tracking automáticamente al servirlo.</p>
+      <p>3. El cliente accede desde su URL con la contraseña que le asignaste.</p>
+      <p>4. Podés ver en detalle cuánto tiempo estuvo, hasta dónde scrolleó y desde qué dispositivo.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleExpiry(cb) {
+  document.getElementById('expiry_config').style.display = cb.checked ? 'block' : 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends 'admin/base.html' %}
+{% block title %}Tracking · {{ propuesta.titulo }}{% endblock %}
+{% block page_title %}Tracking{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost btn-sm">← Volver</a>
+{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:20px;">
+  <div style="font-size:12px; color:var(--muted); font-family:var(--mono); margin-bottom:4px;">
+    {{ propuesta.cliente.empresa.nombre }} · {{ propuesta.cliente.nombre }}
+  </div>
+  <h2 style="font-size:18px; font-weight:600;">{{ propuesta.titulo }}</h2>
+  <div style="margin-top:6px;">
+    <span class="url-code">{{ propuesta.cliente.empresa.slug }}.matiasjardin.com/{{ propuesta.cliente.slug }}</span>
+    {% if propuesta.activa %}
+      <span class="badge badge-active" style="margin-left:8px;">activa</span>
+    {% else %}
+      <span class="badge badge-inactive" style="margin-left:8px;">inactiva</span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-label">Sesiones totales</div>
+    <div class="stat-value">{{ stats.total_sesiones }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Tiempo activo prom.</div>
+    <div class="stat-value" style="font-size:22px;">
+      {% if stats.avg_active_s >= 60 %}
+        {{ (stats.avg_active_s // 60)|int }}m {{ (stats.avg_active_s % 60)|int }}s
+      {% else %}
+        {{ stats.avg_active_s }}s
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Último acceso</div>
+    <div class="stat-value" style="font-size:16px; padding-top:4px;">
+      {% if stats.ultimo_acceso %}
+        {{ stats.ultimo_acceso.strftime('%d/%m/%y') }}<br>
+        <span style="font-size:14px; color:var(--muted)">{{ stats.ultimo_acceso.strftime('%H:%M') }}</span>
+      {% else %}
+        –
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Dispositivos</div>
+    <div style="margin-top:8px;">
+      {% for dev, count in stats.dispositivos.items() %}
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+          <span style="color:var(--muted)">{{ dev }}</span>
+          <span style="font-family:var(--mono);">{{ count }}</span>
+        </div>
+      {% endfor %}
+      {% if not stats.dispositivos %}
+        <span style="color:var(--muted); font-size:13px;">–</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Session detail -->
+<div class="card">
+  <div class="card-title">Sesiones ({{ stats.total_sesiones }})</div>
+  {% if stats.sesiones %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha / Hora</th>
+          <th>Dispositivo</th>
+          <th>Pantalla</th>
+          <th>Zona horaria</th>
+          <th>IP</th>
+          <th>Tiempo activo</th>
+          <th>Scroll máx.</th>
+          <th>Eventos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in stats.sesiones %}
+        <tr>
+          <td style="font-family:var(--mono); font-size:12px;">
+            {{ s.created_at.strftime('%d/%m/%y %H:%M:%S') }}
+          </td>
+          <td>
+            {% if s.device == 'Móvil' %}
+              <span style="font-size:16px;">📱</span> Móvil
+            {% elif s.device == 'Tablet' %}
+              <span style="font-size:16px;">⬜</span> Tablet
+            {% else %}
+              <span style="font-size:16px;">🖥</span> Desktop
+            {% endif %}
+          </td>
+          <td style="font-family:var(--mono); font-size:12px; color:var(--muted);">
+            {{ s.screen }}
+          </td>
+          <td style="font-size:12px; color:var(--muted);">{{ s.tz }}</td>
+          <td style="font-family:var(--mono); font-size:12px; color:var(--muted);">{{ s.ip }}</td>
+          <td>
+            {% if s.active_s > 0 %}
+              <span style="font-family:var(--mono); font-size:13px;">
+                {% if s.active_s >= 60 %}
+                  {{ (s.active_s // 60)|int }}m {{ (s.active_s % 60)|int }}s
+                {% else %}
+                  {{ s.active_s }}s
+                {% endif %}
+              </span>
+            {% else %}
+              <span style="color:var(--muted)">–</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.max_scroll > 0 %}
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:60px; height:6px; background:var(--border2); border-radius:3px; overflow:hidden;">
+                  <div style="width:{{ s.max_scroll }}%; height:100%; background:var(--accent); border-radius:3px;"></div>
+                </div>
+                <span style="font-family:var(--mono); font-size:12px;">{{ s.max_scroll }}%</span>
+              </div>
+            {% else %}
+              <span style="color:var(--muted)">–</span>
+            {% endif %}
+          </td>
+          <td style="font-family:var(--mono); font-size:12px; color:var(--muted);">
+            {{ s.eventos_count }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">
+      No hay sesiones registradas todavía.<br>
+      <span style="font-size:12px; margin-top:4px; display:block;">Cuando el cliente abra la propuesta, los datos aparecerán acá.</span>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login · Proposals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080808;
+      --surface: #111;
+      --border: #222;
+      --border2: #2e2e2e;
+      --accent: #7c3aed;
+      --text: #f0f0f0;
+      --muted: #666;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .login-wrap {
+      width: 360px;
+    }
+    .login-header {
+      margin-bottom: 32px;
+    }
+    .login-header span {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .login-header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 28px;
+    }
+    label {
+      display: block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input[type=password] {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: 'DM Mono', monospace;
+      outline: none;
+      transition: border-color .15s;
+      margin-bottom: 16px;
+    }
+    input[type=password]:focus { border-color: var(--accent); }
+    button {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    button:hover { background: #6d28d9; }
+    .flash {
+      background: rgba(229,62,62,.1);
+      border: 1px solid rgba(229,62,62,.3);
+      color: #fc8181;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-header">
+      <span>proposals</span>
+      <h1>Panel de administración</h1>
+    </div>
+    <div class="card">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}{% for msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}{% endif %}
+      {% endwith %}
+      <form method="POST">
+        <label>Contraseña</label>
+        <input type="password" name="password" autofocus placeholder="••••••••">
+        <button type="submit">Ingresar →</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

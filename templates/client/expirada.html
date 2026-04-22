@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Propuesta vencida · {{ empresa.nombre }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #fafafa;
+      font-family: 'Outfit', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .wrap { text-align: center; max-width: 360px; }
+    .icon { font-size: 40px; margin-bottom: 20px; }
+    h1 { font-size: 22px; font-weight: 600; color: #111; margin-bottom: 8px; }
+    p { font-size: 14px; color: #888; line-height: 1.6; }
+    .brand { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+             color: #7c3aed; margin-bottom: 28px; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0c0c0c; }
+      h1 { color: #f0f0f0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">{{ empresa.nombre }}</div>
+    <div class="icon">⏱</div>
+    <h1>Esta propuesta venció.</h1>
+    <p>El link de acceso ya no está disponible.<br>
+       Contactate con nosotros para obtener una versión actualizada.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,111 @@
+{% extends 'admin/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Propuestas{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_propuesta_nueva') }}" class="btn btn-primary">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+    Nueva propuesta
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Total propuestas</div>
+    <div class="stat-value">{{ propuestas|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Activas</div>
+    <div class="stat-value">{{ propuestas|selectattr('obj.activa')|list|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Clientes</div>
+    <div class="stat-value">{{ clientes|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total aperturas</div>
+    <div class="stat-value">{{ propuestas|sum(attribute='views') }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Todas las propuestas</div>
+  {% if propuestas %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Título</th>
+          <th>Cliente</th>
+          <th>Empresa</th>
+          <th>URL</th>
+          <th>Estado</th>
+          <th>Vistas</th>
+          <th>Último acceso</th>
+          <th>Expira</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in propuestas %}
+        {% set p = row.obj %}
+        <tr>
+          <td style="font-weight:500">{{ p.titulo }}</td>
+          <td>{{ p.cliente.nombre }}</td>
+          <td><span class="badge badge-empresa">{{ p.cliente.empresa.nombre }}</span></td>
+          <td>
+            <span class="url-code">
+              {{ p.cliente.empresa.slug }}.matiasjardin.com/{{ p.cliente.slug }}
+            </span>
+          </td>
+          <td>
+            {% if p.activa %}
+              <span class="badge badge-active">activa</span>
+            {% else %}
+              <span class="badge badge-inactive">inactiva</span>
+            {% endif %}
+          </td>
+          <td style="font-family:var(--mono); font-size:13px;">{{ row.views }}</td>
+          <td style="color:var(--muted); font-size:12px;">
+            {% if row.last_view %}
+              {{ row.last_view.strftime('%d/%m/%y %H:%M') }}
+            {% else %}
+              –
+            {% endif %}
+          </td>
+          <td style="color:var(--muted); font-size:12px;">
+            {% if p.expira_en %}
+              {{ p.expira_en.strftime('%d/%m/%y') }}
+            {% else %}
+              –
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{{ url_for('admin_tracking', id=p.id) }}" class="btn btn-ghost btn-sm">
+                Tracking
+              </a>
+              <form method="POST" action="{{ url_for('admin_toggle_propuesta', id=p.id) }}" style="display:inline">
+                <button type="submit" class="btn btn-ghost btn-sm">
+                  {{ 'Desactivar' if p.activa else 'Activar' }}
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('admin_delete_propuesta', id=p.id) }}"
+                    style="display:inline"
+                    onsubmit="return confirm('¿Eliminar esta propuesta y todos sus datos?')">
+                <button type="submit" class="btn btn-danger btn-sm">✕</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty">No hay propuestas todavía. <a href="{{ url_for('admin_propuesta_nueva') }}" style="color:var(--accent)">Creá una →</a></div>
+  {% endif %}
+</div>
+
+{% endblock %}
