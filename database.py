@@ -3,6 +3,7 @@ import json
 import hashlib
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 
 db = SQLAlchemy()
 
@@ -16,8 +17,25 @@ def init_db(app):
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
     db.init_app(app)
     with app.app_context():
-        db.create_all()
-        _seed_empresas()
+        if url.startswith('postgresql://'):
+            _init_postgres_schema()
+        else:
+            _create_schema()
+
+
+def _create_schema():
+    db.create_all()
+    _seed_empresas()
+
+
+def _init_postgres_schema():
+    lock_id = 849201735
+    with db.engine.connect() as conn:
+        conn.execute(text('SELECT pg_advisory_lock(:lock_id)'), {'lock_id': lock_id})
+        try:
+            _create_schema()
+        finally:
+            conn.execute(text('SELECT pg_advisory_unlock(:lock_id)'), {'lock_id': lock_id})
 
 
 def _seed_empresas():
