@@ -17,6 +17,7 @@
             <th>Nombre</th>
             <th>Slug (URL)</th>
             <th>Empresa</th>
+            <th>Clave</th>
             <th>Propuestas</th>
             <th>Creado</th>
             <th></th>
@@ -28,6 +29,25 @@
             <td style="font-weight:500">{{ c.nombre }}</td>
             <td><span class="url-code">{{ c.slug }}</span></td>
             <td><span class="badge badge-empresa">{{ c.empresa.nombre }}</span></td>
+            <td>
+              {% if c.access_password %}
+              <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <span class="url-code" data-password-value="{{ c.access_password }}">••••••••</span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="togglePassword(this)">Ver</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="copyPassword(this)">Copiar</button>
+              </div>
+              {% else %}
+              <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <span style="font-size:12px; color:var(--muted);">No disponible</span>
+                <form method="POST" action="{{ url_for('admin_update_cliente_password', id=c.id) }}"
+                      style="display:flex; gap:6px; align-items:center;">
+                  <input type="text" name="password" placeholder="Nueva clave" required
+                         style="width:120px; padding:7px 9px; font-size:12px;">
+                  <button type="submit" class="btn btn-ghost btn-sm">Guardar</button>
+                </form>
+              </div>
+              {% endif %}
+            </td>
             <td style="font-family:var(--mono); font-size:13px; color:var(--muted)">
               {{ c.propuestas|length }}
             </td>
@@ -104,5 +124,28 @@
     {% endfor %}
   </div>
 </div>
+
+<script>
+function getPasswordNode(button) {
+  return button.parentElement.querySelector('[data-password-value]');
+}
+
+function togglePassword(button) {
+  const node = getPasswordNode(button);
+  const visible = node.dataset.visible === 'true';
+  node.textContent = visible ? '••••••••' : node.dataset.passwordValue;
+  node.dataset.visible = visible ? 'false' : 'true';
+  button.textContent = visible ? 'Ver' : 'Ocultar';
+}
+
+function copyPassword(button) {
+  const node = getPasswordNode(button);
+  navigator.clipboard.writeText(node.dataset.passwordValue).then(() => {
+    const original = button.textContent;
+    button.textContent = 'Copiada';
+    setTimeout(() => { button.textContent = original; }, 1400);
+  });
+}
+</script>
 
 {% endblock %}

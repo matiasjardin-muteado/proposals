@@ -3,7 +3,7 @@ import json
 import hashlib
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 db = SQLAlchemy()
 
@@ -25,6 +25,7 @@ def init_db(app):
 
 def _create_schema():
     db.create_all()
+    _ensure_schema_updates()
     _seed_empresas()
 
 
@@ -36,6 +37,17 @@ def _init_postgres_schema():
             _create_schema()
         finally:
             conn.execute(text('SELECT pg_advisory_unlock(:lock_id)'), {'lock_id': lock_id})
+
+
+def _ensure_schema_updates():
+    inspector = inspect(db.engine)
+    if 'clientes' not in inspector.get_table_names():
+        return
+
+    columns = {col['name'] for col in inspector.get_columns('clientes')}
+    if 'access_password' not in columns:
+        with db.engine.begin() as conn:
+            conn.execute(text('ALTER TABLE clientes ADD COLUMN access_password VARCHAR(255)'))
 
 
 def _seed_empresas():
@@ -71,6 +83,7 @@ class ClienteModel(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     slug = db.Column(db.String(50), nullable=False)
     password_hash = db.Column(db.String(64), nullable=False)
+    access_password = db.Column(db.String(255), nullable=True)
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresas.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     propuestas = db.relationship('PropuestaModel', backref='cliente', lazy=True,
@@ -167,7 +180,13 @@ class Cliente:
 
     @staticmethod
     def create(nombre, slug, password, empresa_id):
-        c = ClienteModel(nombre=nombre, slug=slug, password_hash=_hash(password), empresa_id=empresa_id)
+        c = ClienteModel(
+            nombre=nombre,
+            slug=slug,
+            password_hash=_hash(password),
+            access_password=password,
+            empresa_id=empresa_id,
+        )
         db.session.add(c)
         db.session.commit()
         return c
@@ -176,6 +195,15 @@ class Cliente:
     def check_password(cliente_id, password):
         c = ClienteModel.query.get(cliente_id)
         return c is not None and c.password_hash == _hash(password)
+
+    @staticmethod
+    def update_password(cliente_id, password):
+        c = ClienteModel.query.get(cliente_id)
+        if c:
+            c.password_hash = _hash(password)
+            c.access_password = password
+            db.session.commit()
+        return c
 
     @staticmethod
     def delete(cliente_id):

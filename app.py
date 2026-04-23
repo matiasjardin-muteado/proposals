@@ -254,6 +254,22 @@ def admin_delete_cliente(id):
     return redirect(url_for('admin_clientes'))
 
 
+@app.route('/admin/clientes/<int:id>/password', methods=['POST'])
+@admin_required
+def admin_update_cliente_password(id):
+    password = request.form.get('password', '').strip()
+    if not password:
+        flash('Ingresá una nueva contraseña.')
+        return redirect(url_for('admin_clientes'))
+
+    cliente = Cliente.update_password(id, password)
+    if cliente:
+        flash(f'Contraseña actualizada para "{cliente.nombre}".')
+    else:
+        flash('Cliente no encontrado.')
+    return redirect(url_for('admin_clientes'))
+
+
 @app.route('/admin/propuestas/nueva', methods=['GET', 'POST'])
 @admin_required
 def admin_propuesta_nueva():
