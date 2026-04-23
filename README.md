@@ -33,9 +33,14 @@ templates/
 ```
 SECRET_KEY=<string-aleatorio-largo>
 ADMIN_PASSWORD=<tu-contraseña-admin>
-DATABASE_URL=<se-inyecta-automático-desde-PostgreSQL>
+DATABASE_URL=<reference variable al DATABASE_URL del servicio Postgres>
 DEFAULT_EMPRESA=muteado
 ```
+
+Notas:
+- El servicio ya incluye `gunicorn` en `Procfile` y `nixpacks.toml`, así que Railway debería detectarlo solo.
+- Si Railway no detecta el start command, configurarlo manualmente como `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60`.
+- Mientras uses el dominio temporal de Railway (`*.up.railway.app`), la vista cliente va a usar `DEFAULT_EMPRESA`. Cuando apuntes dominios reales por empresa, la app toma el subdominio automáticamente.
 
 ### 3. Custom Domains
 En Railway → Settings → Domains, agregar:
@@ -43,7 +48,7 @@ En Railway → Settings → Domains, agregar:
 - `operantio.matiasjardin.com`
 - `cartago.matiasjardin.com`
 
-Railway te da un CNAME para cada uno.
+Railway te muestra los DNS records que tenés que crear. Cargá exactamente los que te indique para cada dominio.
 
 ## Setup en Vercel (DNS)
 

@@ -19,11 +19,23 @@ init_db(app)
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
 def get_empresa_slug():
-    host = request.host.split(':')[0]
+    host = request.host.split(':')[0].lower()
+    default_empresa = os.environ.get('DEFAULT_EMPRESA', 'muteado')
+
+    # Railway preview domains and local hosts don't encode the company slug
+    # in a stable first subdomain, so we fall back to the configured default.
+    if (
+        host in ('localhost', '127.0.0.1')
+        or host.endswith('.localhost')
+        or host.endswith('.up.railway.app')
+        or host.endswith('.railway.app')
+    ):
+        return default_empresa
+
     parts = host.split('.')
     if len(parts) >= 3:
         return parts[0]
-    return os.environ.get('DEFAULT_EMPRESA', 'muteado')
+    return default_empresa
 
 
 def admin_required(f):
