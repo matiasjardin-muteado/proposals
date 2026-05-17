@@ -1,5 +1,5 @@
 {% extends 'admin/base.html' %}
-{% block title %}Tracking · {{ propuesta.titulo }}{% endblock %}
+{% block title %}Tracking · {{ documento.titulo }}{% endblock %}
 {% block page_title %}Tracking{% endblock %}
 {% block topbar_actions %}
   <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost btn-sm">← Volver</a>
@@ -9,20 +9,24 @@
 
 <div style="margin-bottom:20px;">
   <div style="font-size:12px; color:var(--muted); font-family:var(--mono); margin-bottom:4px;">
-    {{ propuesta.cliente.empresa.nombre }} · {{ propuesta.cliente.nombre }}
+    {{ documento.cliente.empresa.nombre }} · {{ documento.cliente.nombre }}{% if documento.cliente.contacto %} · {{ documento.cliente.contacto }}{% endif %}
   </div>
-  <h2 style="font-size:18px; font-weight:600;">{{ propuesta.titulo }}</h2>
+  <h2 style="font-size:18px; font-weight:600;">{{ documento.titulo }}</h2>
   <div style="margin-top:6px;">
-    <span class="url-code">{{ propuesta.cliente.empresa.slug }}.matiasjardin.com/{{ propuesta.cliente.slug }}</span>
-    {% if propuesta.activa %}
-      <span class="badge badge-active" style="margin-left:8px;">activa</span>
+    <span class="url-code">{{ domain_for(documento.cliente.empresa.slug) }}/{{ documento.cliente.slug }}/{{ documento.slug }}</span>
+    {% if documento.tipo == 'pdf' %}
+      <span class="badge badge-empresa" style="margin-left:8px; background:rgba(229,62,62,.12); color:#fc8181; border-color:rgba(229,62,62,.3);">PDF</span>
     {% else %}
-      <span class="badge badge-inactive" style="margin-left:8px;">inactiva</span>
+      <span class="badge badge-empresa" style="margin-left:8px;">HTML</span>
+    {% endif %}
+    {% if documento.activa %}
+      <span class="badge badge-active" style="margin-left:8px;">activo</span>
+    {% else %}
+      <span class="badge badge-inactive" style="margin-left:8px;">inactivo</span>
     {% endif %}
   </div>
 </div>
 
-<!-- Stats -->
 <div class="stats-row" style="margin-bottom:24px;">
   <div class="stat-card">
     <div class="stat-label">Sesiones totales</div>
@@ -65,7 +69,6 @@
   </div>
 </div>
 
-<!-- Session detail -->
 <div class="card">
   <div class="card-title">Sesiones ({{ stats.total_sesiones }})</div>
   {% if stats.sesiones %}
@@ -139,7 +142,7 @@
   {% else %}
     <div class="empty">
       No hay sesiones registradas todavía.<br>
-      <span style="font-size:12px; margin-top:4px; display:block;">Cuando el cliente abra la propuesta, los datos aparecerán acá.</span>
+      <span style="font-size:12px; margin-top:4px; display:block;">Cuando el cliente abra el documento, los datos aparecerán acá.</span>
     </div>
   {% endif %}
 </div>

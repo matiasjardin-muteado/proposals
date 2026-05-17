@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Panel{% endblock %} · Proposals</title>
+  <title>{% block title %}Panel{% endblock %} · Documentos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -335,24 +335,24 @@
 
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <span>proposals</span>
+    <span>documentos</span>
     <h2>Panel Admin</h2>
   </div>
   <nav>
     <a href="{{ url_for('admin_dashboard') }}"
        class="{{ 'active' if request.endpoint == 'admin_dashboard' else '' }}">
       <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zm0 6a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z"/></svg>
-      Propuestas
+      Documentos
     </a>
     <a href="{{ url_for('admin_clientes') }}"
        class="{{ 'active' if request.endpoint == 'admin_clientes' else '' }}">
       <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
       Clientes
     </a>
-    <a href="{{ url_for('admin_propuesta_nueva') }}"
-       class="{{ 'active' if request.endpoint == 'admin_propuesta_nueva' else '' }}">
+    <a href="{{ url_for('admin_documento_nuevo') }}"
+       class="{{ 'active' if request.endpoint == 'admin_documento_nuevo' else '' }}">
       <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-      Nueva propuesta
+      Nuevo documento
     </a>
   </nav>
   <div class="sidebar-footer">

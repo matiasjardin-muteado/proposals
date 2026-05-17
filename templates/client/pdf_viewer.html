@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ documento.titulo }} · {{ empresa.nombre }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #1a1a1a;
+      color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+    }
+    .topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      background: #111;
+      border-bottom: 1px solid #222;
+    }
+    .topbar .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .topbar .brand .empresa {
+      color: #7c3aed;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .topbar .brand .titulo {
+      color: #f0f0f0;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    .topbar .brand .sep {
+      width: 1px;
+      height: 16px;
+      background: #2e2e2e;
+    }
+    .topbar .actions a {
+      color: #888;
+      text-decoration: none;
+      font-size: 12px;
+      padding: 6px 12px;
+      border: 1px solid #2e2e2e;
+      border-radius: 4px;
+      transition: all .15s;
+    }
+    .topbar .actions a:hover {
+      color: #f0f0f0;
+      border-color: #7c3aed;
+    }
+    .pdf-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #2a2a2a;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <span class="empresa">{{ empresa.nombre }}</span>
+      <span class="sep"></span>
+      <span class="titulo">{{ documento.titulo }}</span>
+    </div>
+    <div class="actions">
+      <a href="{{ pdf_url }}" download="{{ documento.file_name or documento.slug + '.pdf' }}">
+        Descargar PDF
+      </a>
+    </div>
+  </div>
+
+  <iframe class="pdf-frame" src="{{ pdf_url }}#view=FitH"></iframe>
+
+<script>
+(function() {
+  var DOC_ID = {{ documento.id }};
+  var BASE = window.location.protocol + '//' + window.location.host;
+  var sessionId = null;
+  var startTime = Date.now();
+  var activeTime = 0;
+  var lastActive = Date.now();
+  var isActive = true;
+
+  function send(url, data) {
+    var json = JSON.stringify(data);
+    if (navigator.sendBeacon) {
+      var blob = new Blob([json], {type: 'application/json'});
+      navigator.sendBeacon(url, blob);
+    } else {
+      fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:json, keepalive:true});
+    }
+  }
+  function track(type, data) {
+    if (!sessionId) return;
+    send(BASE + '/t/event', {session_id: sessionId, event_type: type, data: data || {}});
+  }
+
+  fetch(BASE + '/t/session', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      documento_id: DOC_ID,
+      screen: window.screen.width + 'x' + window.screen.height,
+      referrer: document.referrer || '',
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone
+    })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    sessionId = d.session_id;
+    track('page_view', {
+      viewport: window.innerWidth + 'x' + window.innerHeight,
+      screen: window.screen.width + 'x' + window.screen.height,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      doc_type: 'pdf'
+    });
+  });
+
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      if (isActive) { activeTime += Date.now() - lastActive; isActive = false; }
+      track('tab_hidden', {active_s: Math.round(activeTime/1000)});
+    } else {
+      isActive = true; lastActive = Date.now();
+      track('tab_visible', {});
+    }
+  });
+  window.addEventListener('focus', function() {
+    if (!isActive) { isActive = true; lastActive = Date.now(); }
+  });
+  window.addEventListener('blur', function() {
+    if (isActive) { activeTime += Date.now() - lastActive; isActive = false; }
+  });
+
+  setInterval(function() {
+    if (isActive) activeTime += 30000;
+    track('heartbeat', {
+      total_s: Math.round((Date.now()-startTime)/1000),
+      active_s: Math.round(activeTime/1000),
+      scroll: 0
+    });
+  }, 30000);
+
+  document.addEventListener('click', function(e) {
+    var el = e.target;
+    var tag = el.tagName ? el.tagName.toLowerCase() : '';
+    track('click', {
+      tag: tag,
+      text: (el.innerText || '').slice(0,60),
+      href: el.href || ''
+    });
+  });
+
+  window.addEventListener('beforeunload', function() {
+    if (isActive) activeTime += Date.now() - lastActive;
+    send(BASE + '/t/event', {
+      session_id: sessionId,
+      event_type: 'page_exit',
+      data: {
+        total_s: Math.round((Date.now()-startTime)/1000),
+        active_s: Math.round(activeTime/1000),
+        scroll: 0
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

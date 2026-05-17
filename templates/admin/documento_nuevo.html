@@ -1,20 +1,20 @@
 {% extends 'admin/base.html' %}
-{% block title %}Nueva propuesta{% endblock %}
-{% block page_title %}Nueva propuesta{% endblock %}
+{% block title %}Nuevo documento{% endblock %}
+{% block page_title %}Nuevo documento{% endblock %}
 
 {% block content %}
 
 <div style="max-width:600px;">
   <div class="card">
-    <div class="card-title">Subir propuesta HTML</div>
+    <div class="card-title">Subir documento HTML o PDF</div>
 
     <form method="POST" enctype="multipart/form-data">
 
       <div class="form-group">
         <label>Título interno</label>
-        <input type="text" name="titulo" placeholder="Propuesta comercial · Nubicom · Abril 2026" required>
+        <input type="text" name="titulo" placeholder="Informe técnico · Nubicom · Mayo 2026" required>
         <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
-          Solo para tu referencia en el panel. El cliente no lo ve.
+          Para tu referencia y como nombre en la página índice del cliente.
         </div>
       </div>
 
@@ -34,10 +34,19 @@
       </div>
 
       <div class="form-group">
-        <label>Archivo HTML</label>
-        <input type="file" name="html_file" accept=".html" required>
+        <label>Slug del documento (opcional)</label>
+        <input type="text" name="slug" placeholder="informe-tecnico" pattern="[a-z0-9\-]*"
+               title="Solo minúsculas, números y guiones">
         <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
-          Solo archivos .html · Máximo 16MB
+          Aparece en la URL. Si lo dejás vacío, se genera del título.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Archivo (HTML o PDF)</label>
+        <input type="file" name="archivo" accept=".html,.htm,.pdf" required>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+          .html, .htm o .pdf · Máximo 25 MB
         </div>
       </div>
 
@@ -52,14 +61,14 @@
           <label>Días hasta expiración</label>
           <input type="number" name="dias_expiracion" value="30" min="1" max="365" style="width:120px;">
           <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
-            El cliente verá una pantalla de "propuesta vencida" al intentar acceder.
+            El cliente verá una pantalla de "documento vencido" al intentar acceder.
           </div>
         </div>
       </div>
 
       <div style="display:flex; gap:12px; margin-top:8px;">
         <button type="submit" class="btn btn-primary">
-          Subir propuesta →
+          Subir documento →
         </button>
         <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost">Cancelar</a>
       </div>
@@ -70,10 +79,10 @@
   <div class="card" style="margin-top:16px;">
     <div class="card-title">Cómo funciona</div>
     <div style="font-size:13px; color:var(--muted); line-height:1.8;">
-      <p>1. Subís el archivo HTML que generaste para el cliente.</p>
-      <p>2. El sistema inyecta el tracking automáticamente al servirlo.</p>
-      <p>3. El cliente accede desde su URL con la contraseña que le asignaste.</p>
-      <p>4. Podés ver en detalle cuánto tiempo estuvo, hasta dónde scrolleó y desde qué dispositivo.</p>
+      <p>1. Subís un archivo HTML o PDF.</p>
+      <p>2. El sistema lo guarda y le inyecta tracking (al servirlo, en el caso del HTML; en un wrapper, en el caso del PDF).</p>
+      <p>3. El cliente accede a su URL con la contraseña que le asignaste. Si tiene varios documentos activos, los ve listados; si tiene uno solo, va directo.</p>
+      <p>4. En "Tracking" ves sesiones, dispositivo, tiempo activo y scroll.</p>
     </div>
   </div>
 </div>

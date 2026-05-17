@@ -1,9 +1,10 @@
 import os
 import json
 import hashlib
+import re
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, text, LargeBinary
 
 db = SQLAlchemy()
 
@@ -14,7 +15,7 @@ def init_db(app):
         url = url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+    app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024
     db.init_app(app)
     with app.app_context():
         if url.startswith('postgresql://'):
@@ -24,8 +25,9 @@ def init_db(app):
 
 
 def _create_schema():
+    _run_migrations()
     db.create_all()
-    _ensure_schema_updates()
+    _run_post_create_migrations()
     _seed_empresas()
 
 
@@ -39,21 +41,81 @@ def _init_postgres_schema():
             conn.execute(text('SELECT pg_advisory_unlock(:lock_id)'), {'lock_id': lock_id})
 
 
-def _ensure_schema_updates():
+def _run_migrations():
+    """Migrations that must run BEFORE db.create_all() (renames)."""
     inspector = inspect(db.engine)
-    if 'clientes' not in inspector.get_table_names():
-        return
+    tables = set(inspector.get_table_names())
 
-    columns = {col['name'] for col in inspector.get_columns('clientes')}
-    if 'access_password' not in columns:
+    # propuestas → documentos
+    if 'propuestas' in tables and 'documentos' not in tables:
         with db.engine.begin() as conn:
-            conn.execute(text('ALTER TABLE clientes ADD COLUMN access_password VARCHAR(255)'))
+            conn.execute(text('ALTER TABLE propuestas RENAME TO documentos'))
+        tables.discard('propuestas')
+        tables.add('documentos')
+
+    # sesiones.propuesta_id → documento_id
+    if 'sesiones' in tables:
+        ses_cols = {c['name'] for c in inspector.get_columns('sesiones')}
+        if 'propuesta_id' in ses_cols and 'documento_id' not in ses_cols:
+            with db.engine.begin() as conn:
+                conn.execute(text('ALTER TABLE sesiones RENAME COLUMN propuesta_id TO documento_id'))
+
+
+def _run_post_create_migrations():
+    """Migrations that run AFTER db.create_all() (column additions, data fixes)."""
+    inspector = inspect(db.engine)
+    tables = set(inspector.get_table_names())
+    dialect = db.engine.dialect.name
+
+    if 'clientes' in tables:
+        cols = {c['name'] for c in inspector.get_columns('clientes')}
+        with db.engine.begin() as conn:
+            if 'access_password' not in cols:
+                conn.execute(text('ALTER TABLE clientes ADD COLUMN access_password VARCHAR(255)'))
+            if 'contacto' not in cols:
+                conn.execute(text('ALTER TABLE clientes ADD COLUMN contacto VARCHAR(150)'))
+
+    if 'documentos' in tables:
+        cols = {c['name'] for c in inspector.get_columns('documentos')}
+        with db.engine.begin() as conn:
+            if 'tipo' not in cols:
+                conn.execute(text("ALTER TABLE documentos ADD COLUMN tipo VARCHAR(10) DEFAULT 'html'"))
+                conn.execute(text("UPDATE documentos SET tipo='html' WHERE tipo IS NULL"))
+            if 'slug' not in cols:
+                conn.execute(text("ALTER TABLE documentos ADD COLUMN slug VARCHAR(100)"))
+                conn.execute(text("UPDATE documentos SET slug = 'doc-' || id WHERE slug IS NULL OR slug = ''"))
+            if 'file_data' not in cols:
+                col_type = 'BYTEA' if dialect == 'postgresql' else 'BLOB'
+                conn.execute(text(f'ALTER TABLE documentos ADD COLUMN file_data {col_type}'))
+            if 'file_name' not in cols:
+                conn.execute(text('ALTER TABLE documentos ADD COLUMN file_name VARCHAR(255)'))
+            if dialect == 'postgresql':
+                conn.execute(text('ALTER TABLE documentos ALTER COLUMN html_content DROP NOT NULL'))
+
+    if 'empresas' in tables:
+        _migrate_operantio_to_pragmato()
+
+
+def _migrate_operantio_to_pragmato():
+    with db.engine.begin() as conn:
+        operantio = conn.execute(text("SELECT id FROM empresas WHERE slug='operantio'")).fetchone()
+        if not operantio:
+            return
+        pragmato = conn.execute(text("SELECT id FROM empresas WHERE slug='pragmato'")).fetchone()
+        if pragmato:
+            conn.execute(
+                text("UPDATE clientes SET empresa_id=:new WHERE empresa_id=:old"),
+                {'new': pragmato[0], 'old': operantio[0]},
+            )
+            conn.execute(text("DELETE FROM empresas WHERE slug='operantio'"))
+        else:
+            conn.execute(text("UPDATE empresas SET nombre='Pragmato', slug='pragmato' WHERE slug='operantio'"))
 
 
 def _seed_empresas():
     defaults = [
         ('Muteado', 'muteado'),
-        ('Operantio', 'operantio'),
+        ('Pragmato', 'pragmato'),
         ('Cartago', 'cartago'),
     ]
     for nombre, slug in defaults:
@@ -64,6 +126,13 @@ def _seed_empresas():
 
 def _hash(pw):
     return hashlib.sha256(pw.encode('utf-8')).hexdigest()
+
+
+def slugify(value):
+    value = (value or '').lower().strip()
+    value = re.sub(r'[^a-z0-9\-]+', '-', value)
+    value = re.sub(r'-+', '-', value).strip('-')
+    return value[:80] or 'doc'
 
 
 # ─── Models ──────────────────────────────────────────────────────────────────
@@ -82,31 +151,36 @@ class ClienteModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     slug = db.Column(db.String(50), nullable=False)
+    contacto = db.Column(db.String(150), nullable=True)
     password_hash = db.Column(db.String(64), nullable=False)
     access_password = db.Column(db.String(255), nullable=True)
     empresa_id = db.Column(db.Integer, db.ForeignKey('empresas.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    propuestas = db.relationship('PropuestaModel', backref='cliente', lazy=True,
+    documentos = db.relationship('DocumentoModel', backref='cliente', lazy=True,
                                   cascade='all, delete-orphan')
 
 
-class PropuestaModel(db.Model):
-    __tablename__ = 'propuestas'
+class DocumentoModel(db.Model):
+    __tablename__ = 'documentos'
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
-    html_content = db.Column(db.Text, nullable=False)
+    slug = db.Column(db.String(100), nullable=False)
+    tipo = db.Column(db.String(10), nullable=False, default='html')  # 'html' | 'pdf'
+    html_content = db.Column(db.Text, nullable=True)
+    file_data = db.Column(LargeBinary, nullable=True)
+    file_name = db.Column(db.String(255), nullable=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=False)
     activa = db.Column(db.Boolean, default=True)
     expira_en = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    sesiones = db.relationship('SesionModel', backref='propuesta', lazy=True,
+    sesiones = db.relationship('SesionModel', backref='documento', lazy=True,
                                 cascade='all, delete-orphan')
 
 
 class SesionModel(db.Model):
     __tablename__ = 'sesiones'
     id = db.Column(db.Integer, primary_key=True)
-    propuesta_id = db.Column(db.Integer, db.ForeignKey('propuestas.id'), nullable=False)
+    documento_id = db.Column(db.Integer, db.ForeignKey('documentos.id'), nullable=False)
     session_token = db.Column(db.String(32), unique=True, nullable=False)
     ip = db.Column(db.String(45))
     user_agent = db.Column(db.Text)
@@ -119,10 +193,10 @@ class SesionModel(db.Model):
                                cascade='all, delete-orphan')
 
     @classmethod
-    def create(cls, propuesta_id, token, ip, user_agent, extra=None):
+    def create(cls, documento_id, token, ip, user_agent, extra=None):
         extra = extra or {}
         s = cls(
-            propuesta_id=propuesta_id,
+            documento_id=documento_id,
             session_token=token,
             ip=ip,
             user_agent=user_agent,
@@ -155,7 +229,7 @@ class TrackingEventModel(db.Model):
 class Empresa:
     @staticmethod
     def get_all():
-        return EmpresaModel.query.all()
+        return EmpresaModel.query.order_by(EmpresaModel.nombre).all()
 
     @staticmethod
     def get_by_slug(slug):
@@ -179,10 +253,11 @@ class Cliente:
         return ClienteModel.query.filter_by(slug=slug, empresa_id=empresa_id).first()
 
     @staticmethod
-    def create(nombre, slug, password, empresa_id):
+    def create(nombre, slug, password, empresa_id, contacto=None):
         c = ClienteModel(
             nombre=nombre,
             slug=slug,
+            contacto=contacto or None,
             password_hash=_hash(password),
             access_password=password,
             empresa_id=empresa_id,
@@ -213,61 +288,102 @@ class Cliente:
             db.session.commit()
 
 
-class Propuesta:
+class Documento:
     @staticmethod
     def get_all_with_stats():
-        propuestas = (PropuestaModel.query
+        documentos = (DocumentoModel.query
                       .join(ClienteModel)
                       .join(EmpresaModel)
-                      .order_by(PropuestaModel.created_at.desc())
+                      .order_by(DocumentoModel.created_at.desc())
                       .all())
         result = []
-        for p in propuestas:
-            views = SesionModel.query.filter_by(propuesta_id=p.id).count()
-            last = (SesionModel.query.filter_by(propuesta_id=p.id)
+        for d in documentos:
+            views = SesionModel.query.filter_by(documento_id=d.id).count()
+            last = (SesionModel.query.filter_by(documento_id=d.id)
                     .order_by(SesionModel.created_at.desc()).first())
             result.append({
-                'obj': p,
+                'obj': d,
                 'views': views,
                 'last_view': last.created_at if last else None,
             })
         return result
 
     @staticmethod
-    def get_active_by_cliente(cliente_id):
-        return (PropuestaModel.query
+    def get_active_for_cliente(cliente_id):
+        return (DocumentoModel.query
                 .filter_by(cliente_id=cliente_id, activa=True)
-                .order_by(PropuestaModel.created_at.desc())
+                .order_by(DocumentoModel.created_at.desc())
+                .all())
+
+    @staticmethod
+    def get_by_cliente_and_slug(cliente_id, slug):
+        return (DocumentoModel.query
+                .filter_by(cliente_id=cliente_id, slug=slug)
                 .first())
 
     @staticmethod
-    def create(titulo, html_content, cliente_id, expira_en=None):
-        p = PropuestaModel(titulo=titulo, html_content=html_content,
-                           cliente_id=cliente_id, expira_en=expira_en)
-        db.session.add(p)
-        db.session.commit()
-        return p
+    def get_by_id(doc_id):
+        return DocumentoModel.query.get(doc_id)
 
     @staticmethod
-    def toggle_activa(propuesta_id):
-        p = PropuestaModel.query.get(propuesta_id)
-        if p:
-            p.activa = not p.activa
+    def slug_available(cliente_id, slug, exclude_id=None):
+        q = DocumentoModel.query.filter_by(cliente_id=cliente_id, slug=slug)
+        if exclude_id:
+            q = q.filter(DocumentoModel.id != exclude_id)
+        return q.first() is None
+
+    @staticmethod
+    def unique_slug(cliente_id, base_slug):
+        slug = slugify(base_slug)
+        candidate = slug
+        i = 2
+        while not Documento.slug_available(cliente_id, candidate):
+            candidate = f'{slug}-{i}'
+            i += 1
+        return candidate
+
+    @staticmethod
+    def create_html(titulo, slug, html_content, cliente_id, expira_en=None):
+        d = DocumentoModel(
+            titulo=titulo, slug=slug, tipo='html',
+            html_content=html_content,
+            cliente_id=cliente_id, expira_en=expira_en,
+        )
+        db.session.add(d)
+        db.session.commit()
+        return d
+
+    @staticmethod
+    def create_pdf(titulo, slug, file_data, file_name, cliente_id, expira_en=None):
+        d = DocumentoModel(
+            titulo=titulo, slug=slug, tipo='pdf',
+            file_data=file_data, file_name=file_name,
+            cliente_id=cliente_id, expira_en=expira_en,
+        )
+        db.session.add(d)
+        db.session.commit()
+        return d
+
+    @staticmethod
+    def toggle_activa(doc_id):
+        d = DocumentoModel.query.get(doc_id)
+        if d:
+            d.activa = not d.activa
             db.session.commit()
 
     @staticmethod
-    def delete(propuesta_id):
-        p = PropuestaModel.query.get(propuesta_id)
-        if p:
-            db.session.delete(p)
+    def delete(doc_id):
+        d = DocumentoModel.query.get(doc_id)
+        if d:
+            db.session.delete(d)
             db.session.commit()
 
 
 class TrackingStats:
     @staticmethod
-    def get_for_propuesta(propuesta_id):
+    def get_for_documento(documento_id):
         sesiones = (SesionModel.query
-                    .filter_by(propuesta_id=propuesta_id)
+                    .filter_by(documento_id=documento_id)
                     .order_by(SesionModel.created_at.desc())
                     .all())
 

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentos · {{ empresa.nombre }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --border: #e8e8e8;
+      --accent: #7c3aed;
+      --text: #111;
+      --muted: #888;
+    }
+
+    body {
+      background: var(--bg);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      padding: 60px 24px 40px;
+      color: var(--text);
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .brand-name {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .brand-line {
+      width: 32px;
+      height: 2px;
+      background: var(--accent);
+      margin-top: 8px;
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 300;
+      margin-bottom: 36px;
+    }
+
+    .doc-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .doc-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: all .15s;
+    }
+    .doc-item:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(124,58,237,.08);
+      transform: translateY(-1px);
+    }
+
+    .doc-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      flex-shrink: 0;
+    }
+    .doc-icon.html { background: rgba(124,58,237,.1); color: var(--accent); }
+    .doc-icon.pdf  { background: rgba(229,62,62,.1);  color: #e53e3e; }
+
+    .doc-meta {
+      flex: 1;
+      min-width: 0;
+    }
+    .doc-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .doc-date {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .doc-arrow {
+      color: var(--muted);
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .footer {
+      margin-top: 48px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0c0c0c;
+        --surface: #131313;
+        --border: #222;
+        --text: #f0f0f0;
+        --muted: #666;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand-name">{{ empresa.nombre }}</div>
+    <div class="brand-line"></div>
+
+    <h1>Hola, {{ cliente.contacto or cliente.nombre }}.</h1>
+    <p class="subtitle">
+      {% if cliente.contacto %}
+        Documentos para {{ cliente.nombre }}.
+      {% else %}
+        Estos son los documentos disponibles para vos.
+      {% endif %}
+    </p>
+
+    <div class="doc-list">
+      {% for d in documentos %}
+      <a href="/{{ cliente.slug }}/{{ d.slug }}" class="doc-item">
+        <div class="doc-icon {{ d.tipo }}">{{ d.tipo|upper }}</div>
+        <div class="doc-meta">
+          <div class="doc-title">{{ d.titulo }}</div>
+          <div class="doc-date">Enviado el {{ d.created_at.strftime('%d/%m/%Y') }}</div>
+        </div>
+        <div class="doc-arrow">→</div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="footer">
+      Enviado por {{ empresa.nombre }}
+    </div>
+  </div>
+</body>
+</html>

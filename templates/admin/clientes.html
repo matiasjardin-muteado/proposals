@@ -14,11 +14,12 @@
       <table>
         <thead>
           <tr>
-            <th>Nombre</th>
+            <th>Cliente</th>
+            <th>Contacto</th>
             <th>Slug (URL)</th>
             <th>Empresa</th>
             <th>Clave</th>
-            <th>Propuestas</th>
+            <th>Docs</th>
             <th>Creado</th>
             <th></th>
           </tr>
@@ -27,6 +28,13 @@
           {% for c in clientes %}
           <tr>
             <td style="font-weight:500">{{ c.nombre }}</td>
+            <td style="font-size:13px; color:var(--text);">
+              {% if c.contacto %}
+                {{ c.contacto }}
+              {% else %}
+                <span style="color:var(--muted)">–</span>
+              {% endif %}
+            </td>
             <td><span class="url-code">{{ c.slug }}</span></td>
             <td><span class="badge badge-empresa">{{ c.empresa.nombre }}</span></td>
             <td>
@@ -49,14 +57,14 @@
               {% endif %}
             </td>
             <td style="font-family:var(--mono); font-size:13px; color:var(--muted)">
-              {{ c.propuestas|length }}
+              {{ c.documentos|length }}
             </td>
             <td style="color:var(--muted); font-size:12px;">
               {{ c.created_at.strftime('%d/%m/%y') }}
             </td>
             <td>
               <form method="POST" action="{{ url_for('admin_delete_cliente', id=c.id) }}"
-                    onsubmit="return confirm('¿Eliminar cliente y todas sus propuestas?')">
+                    onsubmit="return confirm('¿Eliminar cliente y todos sus documentos?')">
                 <button type="submit" class="btn btn-danger btn-sm">✕</button>
               </form>
             </td>
@@ -75,8 +83,15 @@
     <div class="card-title">Nuevo cliente</div>
     <form method="POST">
       <div class="form-group">
-        <label>Nombre</label>
+        <label>Nombre de la empresa cliente</label>
         <input type="text" name="nombre" placeholder="Nubicom" required>
+      </div>
+      <div class="form-group">
+        <label>Persona de contacto (opcional)</label>
+        <input type="text" name="contacto" placeholder="Paola Salinas">
+        <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+          Aparece como saludo en la vista del cliente.
+        </div>
       </div>
       <div class="form-group">
         <label>Slug (aparece en la URL)</label>
@@ -95,12 +110,15 @@
           {% endfor %}
         </select>
         <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
-          Define el subdominio desde donde se accede
+          Define el dominio desde donde se accede
         </div>
       </div>
       <div class="form-group">
         <label>Contraseña del cliente</label>
         <input type="text" name="password" placeholder="Contraseña para acceder" required>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+          Una sola clave abre todos los documentos del cliente.
+        </div>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%">
         Crear cliente →
@@ -113,13 +131,13 @@
 <div class="card" style="margin-top:16px;">
   <div class="card-title">Referencia de URLs</div>
   <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">
-    Cada empresa tiene su propio subdominio. El cliente accede desde:
+    Cada empresa tiene su propio dominio. El cliente accede desde:
   </p>
   <div style="display:flex; gap:12px; flex-wrap:wrap;">
     {% for e in empresas %}
     <div style="background:var(--surface2); border:1px solid var(--border2); border-radius:4px; padding:10px 16px;">
       <div style="font-size:11px; font-family:var(--mono); color:var(--muted); margin-bottom:3px;">{{ e.nombre }}</div>
-      <div style="font-family:var(--mono); font-size:12px; color:#a78bfa;">{{ e.slug }}.matiasjardin.com/[slug-cliente]</div>
+      <div style="font-family:var(--mono); font-size:12px; color:#a78bfa;">{{ domain_for(e.slug) }}/[slug-cliente]</div>
     </div>
     {% endfor %}
   </div>

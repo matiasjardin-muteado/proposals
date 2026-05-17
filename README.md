@@ -1,12 +1,22 @@
-# Proposals — Sistema de propuestas con tracking
+# Documentos — Sistema de envío de documentos con tracking
 
-Panel de administración para servir propuestas HTML con autenticación por cliente y tracking detallado de navegación.
+Panel de administración para servir documentos (HTML y PDF) a clientes, con contraseña por cliente y tracking detallado de navegación. Cada empresa usa su propio dominio.
+
+## Empresas
+
+| Empresa  | Dominio de documentos              |
+|----------|------------------------------------|
+| Muteado  | `documentos.muteado.com`           |
+| Cartago  | `documentos.grupocartago.com`      |
+| Pragmato | `documentos.pragmato.com.ar`       |
+
+Backward compat: los viejos `*.matiasjardin.com` siguen funcionando (mapeados en `DOMAIN_MAP`). `operantio.matiasjardin.com` redirige a Pragmato.
 
 ## Estructura del repo
 
 ```
 app.py             # Flask routes
-database.py        # SQLAlchemy models + helpers
+database.py        # SQLAlchemy models + helpers + migraciones
 requirements.txt
 Procfile
 nixpacks.toml
@@ -16,71 +26,65 @@ templates/
     login.html
     dashboard.html
     clientes.html
-    propuesta_nueva.html
+    documento_nuevo.html
     tracking.html
   client/
     password.html
     expirada.html
+    landing.html       # lista de documentos del cliente
+    pdf_viewer.html    # wrapper con iframe + tracking para PDFs
 ```
 
 ## Setup en Railway
 
-### 1. Crear proyecto nuevo
-- New Project → Deploy from GitHub repo
-- Agregar PostgreSQL como servicio separado
-
-### 2. Variables de entorno (web service)
+### 1. Variables de entorno (web service)
 ```
 SECRET_KEY=<string-aleatorio-largo>
 ADMIN_PASSWORD=<tu-contraseña-admin>
 DATABASE_URL=<reference variable al DATABASE_URL del servicio Postgres>
 DEFAULT_EMPRESA=muteado
+# Opcional: para overridear el mapeo de dominios
+# DOMAIN_MAP={"documentos.otraempresa.com":"otra"}
 ```
 
-Notas:
-- El servicio ya incluye `gunicorn` en `Procfile` y `nixpacks.toml`, así que Railway debería detectarlo solo.
-- Si Railway no detecta el start command, configurarlo manualmente como `gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60`.
-- Mientras uses el dominio temporal de Railway (`*.up.railway.app`), la vista cliente va a usar `DEFAULT_EMPRESA`. Cuando apuntes dominios reales por empresa, la app toma el subdominio automáticamente.
-
-### 3. Custom Domains
+### 2. Custom Domains
 En Railway → Settings → Domains, agregar:
-- `muteado.matiasjardin.com`
-- `operantio.matiasjardin.com`
-- `cartago.matiasjardin.com`
+- `documentos.muteado.com`
+- `documentos.grupocartago.com`
+- `documentos.pragmato.com.ar`
 
-Railway te muestra los DNS records que tenés que crear. Cargá exactamente los que te indique para cada dominio.
-
-## Setup en Vercel (DNS)
-
-En el dashboard de matiasjardin.com → Settings → Domains → Add:
-
-| Nombre     | Tipo  | Valor                    |
-|------------|-------|--------------------------|
-| muteado    | CNAME | [CNAME de Railway]       |
-| operantio  | CNAME | [CNAME de Railway]       |
-| cartago    | CNAME | [CNAME de Railway]       |
+Cargar los CNAME que indique Railway en el DNS de cada dominio (Vercel / Cloudflare / Namecheap / etc.).
 
 ## URLs
 
-| Acceso              | URL                                            |
-|---------------------|------------------------------------------------|
-| Panel admin         | `muteado.matiasjardin.com/admin`               |
-| Vista cliente       | `muteado.matiasjardin.com/[slug-cliente]`      |
+| Acceso              | URL                                                       |
+|---------------------|-----------------------------------------------------------|
+| Panel admin         | `documentos.muteado.com/admin`                            |
+| Landing del cliente | `documentos.[empresa]/[slug-cliente]`                     |
+| Documento puntual   | `documentos.[empresa]/[slug-cliente]/[slug-documento]`    |
+
+Si el cliente tiene un único documento activo, la landing redirige directamente a él.
 
 ## Flujo de uso
 
-1. Ir a `/admin` → crear cliente (nombre + slug + empresa + contraseña)
-2. Subir propuesta HTML → asignar al cliente
-3. Enviarle al cliente: URL + contraseña
-4. El cliente ingresa la contraseña → ve la propuesta
-5. En `/admin/propuestas/<id>/tracking` → ver todo el comportamiento
+1. `/admin` → crear cliente (nombre + slug + empresa + contraseña).
+2. Subir documentos (HTML o PDF) → asignar al cliente. Pueden ser varios.
+3. Enviarle al cliente: URL + contraseña. Una sola clave abre todos sus documentos.
+4. En `/admin/documentos/<id>/tracking` → ver el detalle de sesiones.
+
+## Soporte de archivos
+
+- **HTML**: se sirve directo con tracking inyectado antes de `</body>`.
+- **PDF**: se sirve dentro de un wrapper HTML con iframe (`view=FitH`). El wrapper mide sesión, dispositivo, tiempo activo, focus/blur, clicks y heartbeat. El scroll *dentro* del PDF no se trackea (limitación del visor nativo del navegador).
+
+Tamaño máximo de archivo: **25 MB**.
 
 ## Tracking capturado
 
 - Timestamp de cada sesión
 - Dispositivo, pantalla, zona horaria, IP
-- Tiempo activo vs. tiempo total en página
-- Scroll depth (milestones 25/50/75/90/100%)
+- Tiempo activo vs. tiempo total
+- Scroll depth (sólo HTML, milestones 25/50/75/90/100%)
 - Cambios de pestaña (focus/blur)
 - Clicks (tag, texto, href)
 - Heartbeat cada 30 segundos
@@ -95,10 +99,9 @@ export ADMIN_PASSWORD=admin123
 python app.py
 ```
 
-Acceder en: `http://localhost:5001/admin`
-
-Para testear la vista cliente en local, agregar al archivo `/etc/hosts`:
-```
-127.0.0.1 muteado.localhost
-```
-Y acceder en: `http://muteado.localhost:5001/[slug-cliente]`
+- Admin: `http://localhost:5001/admin` (usa la empresa default = `muteado`).
+- Para testear el subdominio de una empresa puntual, agregar a `/etc/hosts`:
+  ```
+  127.0.0.1 muteado.localhost cartago.localhost pragmato.localhost
+  ```
+  y entrar por `http://cartago.localhost:5001/[slug-cliente]`.
