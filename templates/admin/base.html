@@ -311,6 +311,7 @@
     }
 
     .actions { display: flex; gap: 8px; align-items: center; }
+    .actions-wrap { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
     /* Empty state */
     .empty {
@@ -328,6 +329,27 @@
       background: var(--accent-glow);
       padding: 2px 6px;
       border-radius: 3px;
+    }
+
+    @media (max-width: 860px) {
+      body { display: block; }
+      .sidebar {
+        position: static;
+        width: 100%;
+        min-height: auto;
+        padding: 14px 0;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .sidebar-logo { padding: 0 16px 12px; margin-bottom: 8px; }
+      .sidebar nav { display: flex; overflow-x: auto; }
+      .sidebar nav a { white-space: nowrap; border-left: none; border-bottom: 2px solid transparent; }
+      .sidebar nav a.active { border-left-color: transparent; border-bottom-color: var(--accent); }
+      .sidebar-footer { display: none; }
+      .main { margin-left: 0; }
+      .topbar { padding: 16px; align-items: flex-start; gap: 12px; }
+      .content { padding: 16px; }
+      .card { padding: 16px; }
     }
   </style>
 </head>
@@ -353,6 +375,11 @@
        class="{{ 'active' if request.endpoint == 'admin_documento_nuevo' else '' }}">
       <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
       Nuevo documento
+    </a>
+    <a href="{{ url_for('admin_claves') }}"
+       class="{{ 'active' if request.endpoint in ('admin_claves', 'admin_toggle_clave', 'admin_regenerate_clave', 'admin_delete_clave') else '' }}">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L8 16H5v3H2v-3.586l4.257-4.257A6 6 0 1118 8zm-6-2a2 2 0 100 4 2 2 0 000-4z" clip-rule="evenodd"/></svg>
+      Claves internas
     </a>
   </nav>
   <div class="sidebar-footer">

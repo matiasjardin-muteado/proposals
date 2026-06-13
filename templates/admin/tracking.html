@@ -2,7 +2,10 @@
 {% block title %}Tracking · {{ documento.titulo }}{% endblock %}
 {% block page_title %}Tracking{% endblock %}
 {% block topbar_actions %}
-  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost btn-sm">← Volver</a>
+  <div class="actions-wrap">
+    <a href="{{ url_for('admin_tracking_csv', id=documento.id) }}" class="btn btn-ghost btn-sm">Exportar CSV</a>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost btn-sm">← Volver</a>
+  </div>
 {% endblock %}
 
 {% block content %}
@@ -69,6 +72,54 @@
   </div>
 </div>
 
+{% if stats.top_sections %}
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-title">
+    {% if documento.tipo == 'pdf' %}
+      Tiempo por página
+    {% else %}
+      Tiempo por sección
+    {% endif %}
+  </div>
+  {% set max_time = stats.top_sections[0].seconds %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>{% if documento.tipo == 'pdf' %}Página{% else %}Sección{% endif %}</th>
+          <th>Tiempo acumulado</th>
+          <th>Distribución</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in stats.top_sections %}
+        <tr>
+          <td style="font-weight:500">{{ item.label }}</td>
+          <td style="font-family:var(--mono); font-size:13px;">
+            {% if item.seconds >= 60 %}
+              {{ (item.seconds // 60)|int }}m {{ (item.seconds % 60)|int }}s
+            {% else %}
+              {{ item.seconds }}s
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:160px; max-width:35vw; height:7px; background:var(--border2); border-radius:4px; overflow:hidden;">
+                <div style="width:{{ ((item.seconds / max_time) * 100)|round(0, 'floor') }}%; height:100%; background:var(--accent); border-radius:4px;"></div>
+              </div>
+              <span style="font-family:var(--mono); font-size:12px; color:var(--muted);">
+                {{ ((item.seconds / max_time) * 100)|round(0)|int }}%
+              </span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 <div class="card">
   <div class="card-title">Sesiones ({{ stats.total_sesiones }})</div>
   {% if stats.sesiones %}
@@ -77,12 +128,14 @@
       <thead>
         <tr>
           <th>Fecha / Hora</th>
+          <th>Abierto por</th>
           <th>Dispositivo</th>
           <th>Pantalla</th>
           <th>Zona horaria</th>
           <th>IP</th>
           <th>Tiempo activo</th>
           <th>Scroll máx.</th>
+          <th>Más tiempo</th>
           <th>Eventos</th>
         </tr>
       </thead>
@@ -91,6 +144,10 @@
         <tr>
           <td style="font-family:var(--mono); font-size:12px;">
             {{ s.created_at.strftime('%d/%m/%y %H:%M:%S') }}
+          </td>
+          <td>
+            <div style="font-size:13px;">{{ s.viewer_name }}</div>
+            <div style="font-size:11px; color:var(--muted); font-family:var(--mono);">{{ s.access_type }}</div>
           </td>
           <td>
             {% if s.device == 'Móvil' %}
@@ -126,6 +183,23 @@
                   <div style="width:{{ s.max_scroll }}%; height:100%; background:var(--accent); border-radius:3px;"></div>
                 </div>
                 <span style="font-family:var(--mono); font-size:12px;">{{ s.max_scroll }}%</span>
+              </div>
+            {% else %}
+              <span style="color:var(--muted)">–</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.top_sections %}
+              {% set top = s.top_sections[0] %}
+              <div style="font-size:12px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                {{ top.label }}
+              </div>
+              <div style="font-family:var(--mono); font-size:11px; color:var(--muted);">
+                {% if top.seconds >= 60 %}
+                  {{ (top.seconds // 60)|int }}m {{ (top.seconds % 60)|int }}s
+                {% else %}
+                  {{ top.seconds }}s
+                {% endif %}
               </div>
             {% else %}
               <span style="color:var(--muted)">–</span>

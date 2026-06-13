@@ -12,7 +12,7 @@
 
 <div class="stats-row">
   <div class="stat-card">
-    <div class="stat-label">Total documentos</div>
+    <div class="stat-label">Documentos filtrados</div>
     <div class="stat-value">{{ documentos|length }}</div>
   </div>
   <div class="stat-card">
@@ -24,9 +24,59 @@
     <div class="stat-value">{{ clientes|length }}</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Total aperturas</div>
+    <div class="stat-label">Aperturas filtradas</div>
     <div class="stat-value">{{ documentos|sum(attribute='views') }}</div>
   </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-title">Filtros</div>
+  <form method="GET" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; align-items:end;">
+    <div>
+      <label>Empresa</label>
+      <select name="empresa">
+        <option value="">Todas</option>
+        {% for e in empresas %}
+          <option value="{{ e.slug }}" {{ 'selected' if filters.get('empresa') == e.slug else '' }}>{{ e.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Cliente</label>
+      <select name="cliente_id">
+        <option value="">Todos</option>
+        {% for c in clientes %}
+          <option value="{{ c.id }}" {{ 'selected' if filters.get('cliente_id') == c.id|string else '' }}>
+            {{ c.nombre }} · {{ c.empresa.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Tipo</label>
+      <select name="tipo">
+        <option value="">Todos</option>
+        <option value="html" {{ 'selected' if filters.get('tipo') == 'html' else '' }}>HTML</option>
+        <option value="pdf" {{ 'selected' if filters.get('tipo') == 'pdf' else '' }}>PDF</option>
+      </select>
+    </div>
+    <div>
+      <label>Estado</label>
+      <select name="estado">
+        <option value="">Todos</option>
+        <option value="activo" {{ 'selected' if filters.get('estado') == 'activo' else '' }}>Activo</option>
+        <option value="inactivo" {{ 'selected' if filters.get('estado') == 'inactivo' else '' }}>Inactivo</option>
+      </select>
+    </div>
+    <div>
+      <label>Abierto por</label>
+      <input type="text" name="opened_by" value="{{ filters.get('opened_by', '') }}" placeholder="Matías, Socia...">
+    </div>
+    <div class="actions-wrap">
+      <button type="submit" class="btn btn-primary">Filtrar</button>
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost">Limpiar</a>
+    </div>
+  </form>
 </div>
 
 <div class="card">
@@ -43,6 +93,7 @@
           <th>URL</th>
           <th>Estado</th>
           <th>Vistas</th>
+          <th>Abierto por</th>
           <th>Último acceso</th>
           <th>Expira</th>
           <th>Acciones</th>
@@ -51,6 +102,7 @@
       <tbody>
         {% for row in documentos %}
         {% set d = row.obj %}
+        {% set doc_url = 'https://' ~ domain_for(d.cliente.empresa.slug) ~ '/' ~ d.cliente.slug ~ '/' ~ d.slug %}
         <tr>
           <td style="font-weight:500">{{ d.titulo }}</td>
           <td>
@@ -68,9 +120,9 @@
           </td>
           <td><span class="badge badge-empresa">{{ d.cliente.empresa.nombre }}</span></td>
           <td>
-            <span class="url-code">
-              {{ domain_for(d.cliente.empresa.slug) }}/{{ d.cliente.slug }}/{{ d.slug }}
-            </span>
+            <button type="button" class="url-code" data-copy="{{ doc_url }}" onclick="copyValue(this)" style="border:none; cursor:pointer;">
+              Copiar link
+            </button>
           </td>
           <td>
             {% if d.activa %}
@@ -80,26 +132,33 @@
             {% endif %}
           </td>
           <td style="font-family:var(--mono); font-size:13px;">{{ row.views }}</td>
+          <td style="font-size:12px; color:var(--muted); max-width:160px;">
+            {% if row.opened_by %}
+              {{ row.opened_by|join(', ') }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
           <td style="color:var(--muted); font-size:12px;">
             {% if row.last_view %}
               {{ row.last_view.strftime('%d/%m/%y %H:%M') }}
             {% else %}
-              –
+              -
             {% endif %}
           </td>
           <td style="color:var(--muted); font-size:12px;">
             {% if d.expira_en %}
               {{ d.expira_en.strftime('%d/%m/%y') }}
             {% else %}
-              –
+              -
             {% endif %}
           </td>
           <td>
-            <div class="actions">
-              <a href="{{ url_for('admin_tracking', id=d.id) }}" class="btn btn-ghost btn-sm">
-                Tracking
-              </a>
+            <div class="actions-wrap">
+              <a href="{{ url_for('admin_tracking', id=d.id) }}" class="btn btn-ghost btn-sm">Tracking</a>
+              <a href="{{ url_for('admin_edit_documento', id=d.id) }}" class="btn btn-ghost btn-sm">Editar</a>
               <form method="POST" action="{{ url_for('admin_toggle_documento', id=d.id) }}" style="display:inline">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-ghost btn-sm">
                   {{ 'Desactivar' if d.activa else 'Activar' }}
                 </button>
@@ -107,6 +166,7 @@
               <form method="POST" action="{{ url_for('admin_delete_documento', id=d.id) }}"
                     style="display:inline"
                     onsubmit="return confirm('¿Eliminar este documento y todos sus datos?')">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-sm">✕</button>
               </form>
             </div>
@@ -117,8 +177,18 @@
     </table>
   </div>
   {% else %}
-    <div class="empty">No hay documentos todavía. <a href="{{ url_for('admin_documento_nuevo') }}" style="color:var(--accent)">Subí uno →</a></div>
+    <div class="empty">No hay documentos para estos filtros. <a href="{{ url_for('admin_documento_nuevo') }}" style="color:var(--accent)">Subí uno →</a></div>
   {% endif %}
 </div>
+
+<script>
+function copyValue(button) {
+  navigator.clipboard.writeText(button.dataset.copy).then(() => {
+    const original = button.textContent;
+    button.textContent = 'Copiado';
+    setTimeout(() => { button.textContent = original; }, 1400);
+  });
+}
+</script>
 
 {% endblock %}

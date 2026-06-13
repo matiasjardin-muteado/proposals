@@ -111,6 +111,7 @@
         {% endfor %}{% endif %}
       {% endwith %}
       <form method="POST">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <label>Contraseña</label>
         <input type="password" name="password" autofocus placeholder="••••••••">
         <button type="submit">Ingresar →</button>

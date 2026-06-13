@@ -1,0 +1,73 @@
+{% extends 'admin/base.html' %}
+{% block title %}Editar documento{% endblock %}
+{% block page_title %}Editar documento{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost btn-sm">← Volver</a>
+{% endblock %}
+
+{% block content %}
+
+<div style="max-width:640px;">
+  <div class="card">
+    <div class="card-title">Datos del documento</div>
+    <form method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label>Título interno</label>
+        <input type="text" name="titulo" value="{{ documento.titulo }}" required>
+      </div>
+
+      <div class="form-group">
+        <label>Slug</label>
+        <input type="text" name="slug" value="{{ documento.slug }}" pattern="[a-z0-9\-]+" required>
+        <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+          URL actual: /{{ documento.cliente.slug }}/{{ documento.slug }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Cliente</label>
+        <div style="font-size:13px;">
+          {{ documento.cliente.nombre }} · {{ documento.cliente.empresa.nombre }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Reemplazar archivo (opcional)</label>
+        <input type="file" name="archivo" accept=".html,.htm,.pdf">
+        <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+          Si subís un archivo nuevo, reemplaza el contenido actual y puede cambiar HTML/PDF.
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Expira en</label>
+          <input type="text" name="expira_en"
+                 value="{{ documento.expira_en.strftime('%Y-%m-%d') if documento.expira_en else '' }}"
+                 placeholder="YYYY-MM-DD">
+          <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+            Dejalo vacío para que no expire.
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <div class="checkbox-row" style="padding-top:9px;">
+            <input type="checkbox" name="activa" id="activa" {{ 'checked' if documento.activa else '' }}>
+            <label for="activa" style="text-transform:none; letter-spacing:0; font-family:var(--sans); font-size:13px; margin:0; cursor:pointer;">
+              Documento activo
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-wrap" style="margin-top:8px;">
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

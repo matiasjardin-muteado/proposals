@@ -1,0 +1,142 @@
+{% extends 'admin/base.html' %}
+{% block title %}Claves internas{% endblock %}
+{% block page_title %}Claves internas{% endblock %}
+
+{% block content %}
+
+<div style="display:grid; grid-template-columns:1fr 380px; gap:24px; align-items:start;">
+  <div class="card">
+    <div class="card-title">Claves por persona</div>
+    {% if keys %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Rol</th>
+            <th>Alcance</th>
+            <th>Estado</th>
+            <th>Último uso</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key in keys %}
+          <tr>
+            <td style="font-weight:500">{{ key.nombre }}</td>
+            <td style="color:var(--muted); font-size:12px;">{{ key.role }}</td>
+            <td>
+              {% if key.scope_type == 'global' %}
+                <span class="badge badge-empresa">Todas las empresas</span>
+              {% elif key.scope_type == 'empresa' and key.empresa %}
+                <span class="badge badge-empresa">{{ key.empresa.nombre }}</span>
+              {% elif key.scope_type == 'cliente' and key.cliente %}
+                <span class="badge badge-empresa">{{ key.cliente.nombre }}</span>
+              {% else %}
+                <span style="color:var(--muted)">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if key.active %}
+                <span class="badge badge-active">activa</span>
+              {% else %}
+                <span class="badge badge-inactive">pausada</span>
+              {% endif %}
+            </td>
+            <td style="color:var(--muted); font-size:12px;">
+              {% if key.last_used_at %}
+                {{ key.last_used_at.strftime('%d/%m/%y %H:%M') }}
+                {% if key.last_used_ip %}
+                  <div style="font-family:var(--mono); font-size:11px;">{{ key.last_used_ip }}</div>
+                {% endif %}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              <div class="actions-wrap">
+                <form method="POST" action="{{ url_for('admin_toggle_clave', id=key.id) }}">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-ghost btn-sm">{{ 'Pausar' if key.active else 'Activar' }}</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin_regenerate_clave', id=key.id) }}"
+                      onsubmit="return confirm('¿Regenerar la clave? La anterior dejará de funcionar.')">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-ghost btn-sm">Regenerar</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin_delete_clave', id=key.id) }}"
+                      onsubmit="return confirm('¿Eliminar esta clave interna?')">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-danger btn-sm">✕</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty">Todavía no hay claves internas.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-title">Nueva clave</div>
+    <form method="POST">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label>Persona</label>
+        <input type="text" name="nombre" placeholder="Paola / Matías / Socia A" required>
+      </div>
+      <div class="form-group">
+        <label>Rol visible</label>
+        <input type="text" name="role" value="Clave interna">
+      </div>
+      <div class="form-group">
+        <label>Alcance</label>
+        <select name="scope_type" id="scope_type" onchange="toggleScopeFields()">
+          <option value="global">Todas las empresas</option>
+          <option value="empresa">Una empresa</option>
+          <option value="cliente">Un cliente</option>
+        </select>
+      </div>
+      <div class="form-group" id="empresa_scope" style="display:none;">
+        <label>Empresa</label>
+        <select name="empresa_id">
+          <option value="">Seleccioná una empresa</option>
+          {% for e in empresas %}
+            <option value="{{ e.id }}">{{ e.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" id="cliente_scope" style="display:none;">
+        <label>Cliente</label>
+        <select name="cliente_id">
+          <option value="">Seleccioná un cliente</option>
+          {% for c in clientes %}
+            <option value="{{ c.id }}">{{ c.nombre }} · {{ c.empresa.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Clave (opcional)</label>
+        <input type="text" name="password" placeholder="Dejalo vacío para generar una">
+        <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
+          Se muestra una sola vez al crear o regenerar.
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Crear clave</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleScopeFields() {
+  const scope = document.getElementById('scope_type').value;
+  document.getElementById('empresa_scope').style.display = scope === 'empresa' ? 'block' : 'none';
+  document.getElementById('cliente_scope').style.display = scope === 'cliente' ? 'block' : 'none';
+}
+</script>
+
+{% endblock %}

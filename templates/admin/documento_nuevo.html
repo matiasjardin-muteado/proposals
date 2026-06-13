@@ -9,6 +9,7 @@
     <div class="card-title">Subir documento HTML o PDF</div>
 
     <form method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
       <div class="form-group">
         <label>Título interno</label>
@@ -46,7 +47,7 @@
         <label>Archivo (HTML o PDF)</label>
         <input type="file" name="archivo" accept=".html,.htm,.pdf" required>
         <div style="font-size:11px; color:var(--muted); margin-top:4px; font-family:var(--mono);">
-          .html, .htm o .pdf · Máximo 25 MB
+          .html, .htm o .pdf · Máximo 25 MB · HTML completo UTF-8
         </div>
       </div>
 
@@ -80,9 +81,9 @@
     <div class="card-title">Cómo funciona</div>
     <div style="font-size:13px; color:var(--muted); line-height:1.8;">
       <p>1. Subís un archivo HTML o PDF.</p>
-      <p>2. El sistema lo guarda y le inyecta tracking (al servirlo, en el caso del HTML; en un wrapper, en el caso del PDF).</p>
+      <p>2. El sistema lo guarda y le inyecta tracking por sección en HTML y por página en PDF.</p>
       <p>3. El cliente accede a su URL con la contraseña que le asignaste. Si tiene varios documentos activos, los ve listados; si tiene uno solo, va directo.</p>
-      <p>4. En "Tracking" ves sesiones, dispositivo, tiempo activo y scroll.</p>
+      <p>4. En "Tracking" ves quién abrió, dispositivo, tiempo activo, secciones/páginas y scroll.</p>
     </div>
   </div>
 </div>
