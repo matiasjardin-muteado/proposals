@@ -1029,7 +1029,7 @@ def cliente_documento(slug, doc_slug):
 
     documento = Documento.get_by_cliente_and_slug(cliente.id, doc_slug)
     if not documento or not documento.activa:
-        abort(404)
+        return redirect(url_for('cliente_landing', slug=cliente.slug))
 
     if documento.expira_en and datetime.utcnow() > documento.expira_en:
         return render_template('client/expirada.html', empresa=empresa, cliente=cliente)
