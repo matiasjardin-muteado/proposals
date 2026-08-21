@@ -8,7 +8,7 @@ El sistema soporta claves internas por persona, tracking por sección en HTML, t
 
 | Empresa  | Dominio de documentos              |
 |----------|------------------------------------|
-| Muteado  | `documentos.muteado.com`           |
+| Muteado  | `muteado.matiasjardin.com`          |
 | Cartago  | `documentos.grupocartago.com`      |
 | Pragmato | `documentos.pragmato.com.ar`       |
 
@@ -63,7 +63,7 @@ NOTIFY_ON_OPEN=true
 
 ### 2. Custom Domains
 En Railway → Settings → Domains, agregar:
-- `documentos.muteado.com`
+- `muteado.matiasjardin.com`
 - `documentos.grupocartago.com`
 - `documentos.pragmato.com.ar`
 
@@ -73,7 +73,7 @@ Cargar los CNAME que indique Railway en el DNS de cada dominio (Vercel / Cloudfl
 
 | Acceso              | URL                                                       |
 |---------------------|-----------------------------------------------------------|
-| Panel admin         | `documentos.muteado.com/admin`                            |
+| Panel admin         | `muteado.matiasjardin.com/admin`                           |
 | Landing del cliente | `documentos.[empresa]/[slug-cliente]`                     |
 | Documento puntual   | `documentos.[empresa]/[slug-cliente]/[slug-documento]`    |
 

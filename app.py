@@ -38,6 +38,12 @@ DEFAULT_DOMAIN_MAP = {
     'operantio.matiasjardin.com': 'pragmato',
 }
 
+PUBLIC_DOMAIN_BY_EMPRESA = {
+    'muteado': 'muteado.matiasjardin.com',
+    'cartago': 'documentos.grupocartago.com',
+    'pragmato': 'documentos.pragmato.com.ar',
+}
+
 
 def _load_domain_map():
     raw = os.environ.get('DOMAIN_MAP', '').strip()
@@ -642,8 +648,10 @@ def admin_dashboard():
 
 
 def _domain_for_empresa(empresa_slug):
-    reverse = {v: k for k, v in DOMAIN_MAP.items() if k.startswith('documentos.')}
-    return reverse.get(empresa_slug, f'{empresa_slug}.matiasjardin.com')
+    return PUBLIC_DOMAIN_BY_EMPRESA.get(
+        empresa_slug,
+        f'{empresa_slug}.matiasjardin.com',
+    )
 
 
 @app.route('/admin/clientes', methods=['GET', 'POST'])
